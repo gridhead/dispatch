@@ -7,7 +7,10 @@ def recvarch():
     if request.method == "POST":
         f = request.files["files"]
         print(f)
-        return "Successful"
+        respjson = {
+            "respcode": "donesend"
+        }
+        return respjson
 
 if __name__ == "__main__":
     main.run(port=9696, host="::")
