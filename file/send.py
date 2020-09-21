@@ -1,4 +1,4 @@
-import requests, hashlib
+import requests, hashlib, click, json, base64
 
 
 class connclss():
@@ -18,7 +18,7 @@ class connclss():
             else:
                 return 1
         except Exception as expt:
-            print("[ ! ] " + str(expt))
+            click.echo("[ ! ] " + str(expt))
             return -1
 
     def sendfile(self):
@@ -29,7 +29,7 @@ class connclss():
             else:
                 return 1
         except Exception as expt:
-            print("[ ! ] " + str(expt))
+            click.echo("[ ! ] " + str(expt))
             return -1
 
     def connrecv(self):
@@ -40,21 +40,35 @@ class connclss():
             else:
                 return 1
         except Exception as expt:
-            print("[ ! ] " + str(expt))
+            click.echo("[ ! ] " + str(expt))
             return -1
 
 
-if __name__ == "__main__":
-    connobjc = connclss("file.pkg", "2409:4042:483:f09e:9aa1:cac5:64cc:3984", "9696", "password")
-    if connobjc.connrecv() == 0:
-        print("[1/3] Receiver legitimacy verified! Transferring file...")
-        if connobjc.sendfile() == 0:
-            print("[2/3] File transfer complete! Sending file hash...")
-            if connobjc.sendhash() == 0:
-                print("[3/3] File integrity verified at receiver's end!")
+@click.command()
+@click.option("-f", "--filename", "filename", help="Set the filename that you wish to send", required=True)
+@click.option("-c", "--joincode", "joincode", help="Set the invite code for connecting to receiver", required=True)
+@click.version_option(version="21092020", prog_name="Dispatch SEND")
+def mainfunc(filename:str, joincode:str):
+    try:
+        click.clear()
+        genrdict = json.loads(base64.b64decode(joincode.encode("ascii")).decode("ascii"))
+        click.echo("[ ! ] You are now connecting to " + genrdict["username"] + "'s device")
+        connobjc = connclss(filename, genrdict["ipv6addr"], genrdict["portrecv"], "password")
+        if connobjc.connrecv() == 0:
+            click.echo("[1/3] Receiver legitimacy verified! Transferring file...")
+            if connobjc.sendfile() == 0:
+                click.echo("[2/3] File transfer complete! Sending file hash...")
+                if connobjc.sendhash() == 0:
+                    click.echo("[3/3] File integrity verified at receiver's end!")
+                else:
+                    click.echo("[ ! ] File integrity verification failed")
             else:
-                print("[ ! ] File integrity verification failed")
+                click.echo("[ ! ] File transfer failed")
         else:
-            print("[ ! ] File transfer failed")
-    else:
-        print("[ ! ] Receiver legitimacy could not be verified")
+            click.echo("[ ! ] Receiver legitimacy could not be verified")
+    except Exception as expt:
+        click.echo("Sender had to exit due to the following exception" + "\n" + str(expt))
+
+
+if __name__ == "__main__":
+    mainfunc()
