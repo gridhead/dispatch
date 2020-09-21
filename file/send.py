@@ -1,47 +1,60 @@
 import requests, hashlib
 
-targetpc = "http://localhost:9696/recvarch/"
 
-targetpc = "http://[2409:4042:2396:2f42:9387:22e4:aa39:af0e]:9696/recvarch/"
+class connclss():
+    def __init__(self, filename:str, targetpc:str, recvport:str, password:str):
+        self.filename = filename
+        self.targetpc = targetpc
+        self.recvport = recvport
+        self.password = password
+        self.filehash = hashlib.sha512(open(self.filename, "rb").read()).hexdigest()
+        self.passhash = hashlib.sha512(password.encode("utf8")).hexdigest()
 
-def sendhash(filename, targetpc):
-    try:
-        hash = hashlib.sha512(open(filename, "rb").read()).hexdigest()
-        objc = requests.get("http://[" + targetpc + "]:9696/filechek/", json={"name": filename + ".bak", "hash": hash})
-        if objc.status_code == 200:
-            if objc.json()["respcode"] == "verified":
-                print("[3/3] File integrity verified at receiver's end!")
+    def sendhash(self):
+        try:
+            respobjc = requests.get("http://[" + self.targetpc + "]:"  + self.recvport + "/filechek/", json={"filename": self.filename + ".bak", "filehash": self.filehash})
+            if respobjc.status_code == 200 and respobjc.json()["respcode"] == "verified":
+                return 0
             else:
-                print("Integrity verification failed")
-        else:
-            print("Receiver is facing errors")
-    except Exception as expt:
-        print("Exception " + str(expt) + " has taken place")
+                return 1
+        except Exception as expt:
+            print("[ ! ] " + str(expt))
+            return -1
 
-
-def sendarch(filename, targetpc):
-    file = {"files": open(filename, "rb")}
-    r = requests.post("http://[" + targetpc + "]:9696/recvarch/", files=file)
-    if r.json()["respcode"] == "donesend":
-        print("[2/3] File transfer complete! Sending file hash...")
-        sendhash(filename, targetpc)
-
-
-def connrecv(filename, targetpc):
-    try:
-        safetext = "password"
-        objc = requests.get("http://[" + targetpc + "]:9696/connsend/", json={"password": safetext})
-        if objc.status_code == 200:
-            if objc.json()["hash"] == hashlib.sha512(safetext.encode("utf8")).hexdigest():
-                print("[1/3] Receiver legitimacy verified! Transferring file...")
-                sendarch(filename, targetpc)
+    def sendfile(self):
+        try:
+            respobjc = requests.post("http://[" + self.targetpc + "]:" + self.recvport + "/recvfile/", files={"files": open(self.filename, "rb")})
+            if respobjc.status_code == 200 and respobjc.json()["respcode"] == "donesend":
+                return 0
             else:
-                print("Verification failed")
-        else:
-            print("Receiver is facing errors")
-    except Exception as expt:
-        print("Exception " + str(expt) + " has taken place")
+                return 1
+        except Exception as expt:
+            print("[ ! ] " + str(expt))
+            return -1
+
+    def connrecv(self):
+        try:
+            respobjc = requests.get("http://[" + self.targetpc + "]:" + self.recvport + "/connsend/", json={"password": self.password})
+            if respobjc.status_code == 200 and respobjc.json()["passhash"] == self.passhash:
+                return 0
+            else:
+                return 1
+        except Exception as expt:
+            print("[ ! ] " + str(expt))
+            return -1
 
 
 if __name__ == "__main__":
-    connrecv(str(input("Enter the filename ")), str(input("Enter the destination PC address ")))
+    connobjc = connclss("file.pkg", "2409:4042:483:f09e:9aa1:cac5:64cc:3984", "9696", "password")
+    if connobjc.connrecv() == 0:
+        print("[1/3] Receiver legitimacy verified! Transferring file...")
+        if connobjc.sendfile() == 0:
+            print("[2/3] File transfer complete! Sending file hash...")
+            if connobjc.sendhash() == 0:
+                print("[3/3] File integrity verified at receiver's end!")
+            else:
+                print("[ ! ] File integrity verification failed")
+        else:
+            print("[ ! ] File transfer failed")
+    else:
+        print("[ ! ] Receiver legitimacy could not be verified")

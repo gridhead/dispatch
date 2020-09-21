@@ -5,8 +5,9 @@ main = Flask(__name__)
 loge = logging.getLogger("werkzeug")
 loge.disabled = True
 
-@main.route("/recvarch/", methods=["POST"])
-def recvarch():
+
+@main.route("/recvfile/", methods=["POST"])
+def recvfile():
     if request.method == "POST":
         f = request.files["files"]
         print(" * Transfer buffer cached to storage")
@@ -18,18 +19,18 @@ def recvarch():
 def connsend():
     if request.method == "GET":
         print(" * Identity proven to a sender")
-        return {"hash": hashlib.sha512(request.get_json()["password"].encode("utf8")).hexdigest()}
+        return {"passhash": hashlib.sha512(request.get_json()["password"].encode("utf8")).hexdigest()}
 
 
 @main.route("/filechek/", methods=["GET"])
 def filechek():
     try:
         if request.method == "GET":
-            if hashlib.sha512(open(request.get_json()["name"], "rb").read()).hexdigest() == request.get_json()["hash"]:
-                os.system("mv " + request.get_json()["name"] + " " + request.get_json()["name"][:-4])
+            if hashlib.sha512(open(request.get_json()["filename"], "rb").read()).hexdigest() == request.get_json()["filehash"]:
+                os.system("mv " + request.get_json()["filename"] + " " + request.get_json()["filename"][:-4])
                 print(" * Cache integrity verified"+ "\n" + " * Transfer complete")
                 return {"respcode": "verified"}
-            os.system("rm " + request.get_json()["name"])
+            os.system("rm " + request.get_json()["filename"])
             return {"respcode": "verifail"}
     except Exception as expt:
         return {"respcode": str(expt)}
