@@ -1,0 +1,10 @@
+Operations
+
+./dispatch --host http://localhost:6969/
+
+    - Sets remote host to http://localhost:6969/.
+    - Saves this information in host.b64e file.
+
+./dispatch --push filename.zip
+
+./dispatch --pull DEADCAFE
