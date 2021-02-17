@@ -30,6 +30,8 @@ from werkzeug import __version__ as wkzgvers
 from werkzeug import serving
 from Crypto.PublicKey import RSA
 
+import push
+
 
 class LiveUpdatingEndpoint(object):
     def __init__(self, passcode):
@@ -85,6 +87,8 @@ def mainfunc(portdata, netprotc):
         livesync = LiveUpdatingEndpoint(passcode)
         putpbkey = PushPublicKeyFromServer(2048)
         getpbkey = PullPublicKeyFromClient()
+        pushrech = push.CheckReachability()
+        main.add_route("/pushfunc/pushrech/", pushrech)
         main.add_route("/livesync/", livesync)
         main.add_route("/putpbkey/", putpbkey)
         main.add_route("/getpbkey/", getpbkey)
